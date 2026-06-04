@@ -25,19 +25,6 @@ resource "aws_sqs_queue" "events" {
   }
 }
 
-resource "aws_sqs_queue_policy" "events" {
-  queue_url = aws_sqs_queue.events.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Sid    = "AllowSendMessage"
-      Effect = "Allow"
-      Principal = {
-        AWS = aws_iam_role.ec2_role.arn
-      }
-      Action   = "sqs:SendMessage"
-      Resource = aws_sqs_queue.events.arn
-    }]
-  })
-}
+# No queue resource policy needed: same-account access is governed by the
+# EC2 IAM role policy in iam.tf (sqs:SendMessage/ReceiveMessage/DeleteMessage).
+# A resource policy here would create a circular dependency with iam.tf.

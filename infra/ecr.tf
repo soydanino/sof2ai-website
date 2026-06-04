@@ -54,16 +54,8 @@ resource "aws_ecr_repository" "notifications_api" {
   }
 }
 
-resource "aws_ecr_lifecycle_policy" "keep_last_10" {
-  for_each   = toset(["users_api", "posts_api", "comments_api", "notifications_api"])
-  repository = lookup({
-    users_api         = aws_ecr_repository.users_api.name
-    posts_api         = aws_ecr_repository.posts_api.name
-    comments_api      = aws_ecr_repository.comments_api.name
-    notifications_api = aws_ecr_repository.notifications_api.name
-  }, each.key)
-
-  policy = jsonencode({
+locals {
+  lifecycle_policy = jsonencode({
     rules = [{
       rulePriority = 1
       description  = "Keep last 10 images"
@@ -75,4 +67,24 @@ resource "aws_ecr_lifecycle_policy" "keep_last_10" {
       action = { type = "expire" }
     }]
   })
+}
+
+resource "aws_ecr_lifecycle_policy" "users_api" {
+  repository = aws_ecr_repository.users_api.name
+  policy     = local.lifecycle_policy
+}
+
+resource "aws_ecr_lifecycle_policy" "posts_api" {
+  repository = aws_ecr_repository.posts_api.name
+  policy     = local.lifecycle_policy
+}
+
+resource "aws_ecr_lifecycle_policy" "comments_api" {
+  repository = aws_ecr_repository.comments_api.name
+  policy     = local.lifecycle_policy
+}
+
+resource "aws_ecr_lifecycle_policy" "notifications_api" {
+  repository = aws_ecr_repository.notifications_api.name
+  policy     = local.lifecycle_policy
 }

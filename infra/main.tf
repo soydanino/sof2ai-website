@@ -38,3 +38,9 @@ variable "environment" {
   type        = string
   default     = "production"
 }
+
+variable "ec2_key_name" {
+  description = "Name of the EC2 key pair for SSH access (leave empty to skip)"
+  type        = string
+  default     = ""
+}

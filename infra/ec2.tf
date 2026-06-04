@@ -71,10 +71,12 @@ resource "aws_security_group" "ec2_sg" {
 }
 
 resource "aws_instance" "app" {
-  ami                    = data.aws_ami.amazon_linux_2.id
-  instance_type          = "t2.micro"
-  iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
-  vpc_security_group_ids = [aws_security_group.ec2_sg.id]
+  ami                         = data.aws_ami.amazon_linux_2.id
+  instance_type               = "t2.micro"
+  iam_instance_profile        = aws_iam_instance_profile.ec2_profile.name
+  vpc_security_group_ids      = [aws_security_group.ec2_sg.id]
+  associate_public_ip_address = true
+  key_name                    = var.ec2_key_name != "" ? var.ec2_key_name : null
 
   user_data = <<-EOF
     #!/bin/bash
