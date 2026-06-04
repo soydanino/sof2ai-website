@@ -1,0 +1,204 @@
+version: '3.9'
+
+networks:
+  sof2ai-network:
+    driver: bridge
+
+services:
+  # ─── Databases ───────────────────────────────────────────────
+  postgres-users:
+    image: postgres:16-alpine
+    container_name: postgres-users
+    environment:
+      POSTGRES_DB: users_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - '5432:5432'
+    networks:
+      - sof2ai-network
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d users_db']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres-users-data:/var/lib/postgresql/data
+
+  postgres-posts:
+    image: postgres:16-alpine
+    container_name: postgres-posts
+    environment:
+      POSTGRES_DB: posts_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - '5433:5432'
+    networks:
+      - sof2ai-network
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d posts_db']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres-posts-data:/var/lib/postgresql/data
+
+  postgres-comments:
+    image: postgres:16-alpine
+    container_name: postgres-comments
+    environment:
+      POSTGRES_DB: comments_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - '5434:5432'
+    networks:
+      - sof2ai-network
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d comments_db']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres-comments-data:/var/lib/postgresql/data
+
+  postgres-notifications:
+    image: postgres:16-alpine
+    container_name: postgres-notifications
+    environment:
+      POSTGRES_DB: notifications_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - '5435:5432'
+    networks:
+      - sof2ai-network
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d notifications_db']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres-notifications-data:/var/lib/postgresql/data
+
+  postgres-validator:
+    image: postgres:16-alpine
+    container_name: postgres-validator
+    environment:
+      POSTGRES_DB: validator_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - '5436:5432'
+    networks:
+      - sof2ai-network
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d validator_db']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres-validator-data:/var/lib/postgresql/data
+
+  # ─── APIs ────────────────────────────────────────────────────
+  users-api:
+    build:
+      context: ./services/users-api
+      dockerfile: Dockerfile
+    container_name: users-api
+    ports:
+      - '3001:3001'
+    environment:
+      PORT: 3001
+      DB_HOST: postgres-users
+      DB_PORT: 5432
+      DB_NAME: users_db
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      JWT_SECRET: ${JWT_SECRET:-supersecret_change_in_prod}
+    depends_on:
+      postgres-users:
+        condition: service_healthy
+    networks:
+      - sof2ai-network
+
+  posts-api:
+    build:
+      context: ./services/posts-api
+      dockerfile: Dockerfile
+    container_name: posts-api
+    ports:
+      - '3002:3002'
+    environment:
+      PORT: 3002
+      DB_HOST: postgres-posts
+      DB_PORT: 5432
+      DB_NAME: posts_db
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      SQS_QUEUE_URL: ${SQS_QUEUE_URL}
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+    depends_on:
+      postgres-posts:
+        condition: service_healthy
+    networks:
+      - sof2ai-network
+
+  comments-api:
+    build:
+      context: ./services/comments-api
+      dockerfile: Dockerfile
+    container_name: comments-api
+    ports:
+      - '3003:3003'
+    environment:
+      PORT: 3003
+      DB_HOST: postgres-comments
+      DB_PORT: 5432
+      DB_NAME: comments_db
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      SQS_QUEUE_URL: ${SQS_QUEUE_URL}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+    depends_on:
+      postgres-comments:
+        condition: service_healthy
+    networks:
+      - sof2ai-network
+
+  notifications-api:
+    build:
+      context: ./services/notifications-api
+      dockerfile: Dockerfile
+    container_name: notifications-api
+    ports:
+      - '3004:3004'
+    environment:
+      PORT: 3004
+      DB_HOST: postgres-notifications
+      DB_PORT: 5432
+      DB_NAME: notifications_db
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      SQS_QUEUE_URL: ${SQS_QUEUE_URL}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+    depends_on:
+      postgres-notifications:
+        condition: service_healthy
+    networks:
+      - sof2ai-network
+
+volumes:
+  postgres-users-data:
+  postgres-posts-data:
+  postgres-comments-data:
+  postgres-notifications-data:
+  postgres-validator-data:
