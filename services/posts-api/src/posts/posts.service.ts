@@ -43,18 +43,22 @@ export class PostsService {
     const post = this.postsRepository.create({ ...dto, assetUrl });
     const saved = await this.postsRepository.save(post);
 
-    await this.sqs.send(
-      new SendMessageCommand({
-        QueueUrl: this.config.get('SQS_QUEUE_URL'),
-        MessageBody: JSON.stringify({
-          type: 'POST_CREATED',
-          postId: saved.id,
-          userId: saved.userId,
-          title: saved.title,
-          content: saved.content,
+    try {
+      await this.sqs.send(
+        new SendMessageCommand({
+          QueueUrl: this.config.get('SQS_QUEUE_URL'),
+          MessageBody: JSON.stringify({
+            type: 'POST_CREATED',
+            postId: saved.id,
+            userId: saved.userId,
+            title: saved.title,
+            content: saved.content,
+          }),
         }),
-      }),
-    );
+      );
+    } catch (e) {
+      console.warn('SQS notification failed:', e.message);
+    }
 
     return saved;
   }

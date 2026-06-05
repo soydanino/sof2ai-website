@@ -22,18 +22,22 @@ export class CommentsService {
     const comment = this.commentsRepository.create(dto);
     const saved = await this.commentsRepository.save(comment);
 
-    await this.sqs.send(
-      new SendMessageCommand({
-        QueueUrl: this.config.get('SQS_QUEUE_URL'),
-        MessageBody: JSON.stringify({
-          type: 'COMMENT_CREATED',
-          commentId: saved.id,
-          postId: saved.postId,
-          userId: saved.userId,
-          content: saved.content,
+    try {
+      await this.sqs.send(
+        new SendMessageCommand({
+          QueueUrl: this.config.get('SQS_QUEUE_URL'),
+          MessageBody: JSON.stringify({
+            type: 'COMMENT_CREATED',
+            commentId: saved.id,
+            postId: saved.postId,
+            userId: saved.userId,
+            content: saved.content,
+          }),
         }),
-      }),
-    );
+      );
+    } catch (e) {
+      console.warn('SQS notification failed:', e.message);
+    }
 
     return saved;
   }
