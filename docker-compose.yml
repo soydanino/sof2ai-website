@@ -103,9 +103,7 @@ services:
 
   # ─── APIs ────────────────────────────────────────────────────
   users-api:
-    build:
-      context: ./services/users-api
-      dockerfile: Dockerfile
+    image: 657718438908.dkr.ecr.us-east-1.amazonaws.com/sof2ai/users-api:latest
     container_name: users-api
     ports:
       - '3001:3001'
@@ -124,9 +122,7 @@ services:
       - sof2ai-network
 
   posts-api:
-    build:
-      context: ./services/posts-api
-      dockerfile: Dockerfile
+    image: 657718438908.dkr.ecr.us-east-1.amazonaws.com/sof2ai/posts-api:latest
     container_name: posts-api
     ports:
       - '3002:3002'
@@ -151,9 +147,7 @@ services:
       - sof2ai-network
 
   comments-api:
-    build:
-      context: ./services/comments-api
-      dockerfile: Dockerfile
+    image: 657718438908.dkr.ecr.us-east-1.amazonaws.com/sof2ai/comments-api:latest
     container_name: comments-api
     ports:
       - '3003:3003'
@@ -177,9 +171,7 @@ services:
       - sof2ai-network
 
   notifications-api:
-    build:
-      context: ./services/notifications-api
-      dockerfile: Dockerfile
+    image: 657718438908.dkr.ecr.us-east-1.amazonaws.com/sof2ai/notifications-api:latest
     container_name: notifications-api
     ports:
       - '3004:3004'
