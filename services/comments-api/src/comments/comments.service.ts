@@ -2,20 +2,19 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
-import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
 import { Comment } from './entities/comment.entity';
 import { CreateCommentDto } from './dto/create-comment.dto';
 
 @Injectable()
 export class CommentsService {
-  private readonly sqs: SQSClient;
+  private readonly notificationsUrl: string;
 
   constructor(
     @InjectRepository(Comment)
     private readonly commentsRepository: Repository<Comment>,
     private readonly config: ConfigService,
   ) {
-    this.sqs = new SQSClient({ region: config.get('AWS_REGION') });
+    this.notificationsUrl = config.get('NOTIFICATIONS_API_URL') ?? 'http://localhost:3004';
   }
 
   async create(dto: CreateCommentDto) {
@@ -23,20 +22,17 @@ export class CommentsService {
     const saved = await this.commentsRepository.save(comment);
 
     try {
-      await this.sqs.send(
-        new SendMessageCommand({
-          QueueUrl: this.config.get('SQS_QUEUE_URL'),
-          MessageBody: JSON.stringify({
-            type: 'COMMENT_CREATED',
-            commentId: saved.id,
-            postId: saved.postId,
-            userId: saved.userId,
-            content: saved.content,
-          }),
+      await fetch(`${this.notificationsUrl}/notifications`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: saved.userId,
+          type: 'COMMENT_CREATED',
+          message: `New comment on post ${saved.postId}`,
         }),
-      );
+      });
     } catch (e) {
-      console.warn('SQS notification failed:', e.message);
+      console.warn('Notification failed:', e.message);
     }
 
     return saved;

@@ -3,14 +3,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
 import { Post } from './entities/post.entity';
 import { CreatePostDto } from './dto/create-post.dto';
 
 @Injectable()
 export class PostsService {
   private readonly s3: S3Client;
-  private readonly sqs: SQSClient;
+  private readonly notificationsUrl: string;
 
   constructor(
     @InjectRepository(Post)
@@ -18,7 +17,7 @@ export class PostsService {
     private readonly config: ConfigService,
   ) {
     this.s3 = new S3Client({ region: config.get('AWS_REGION') });
-    this.sqs = new SQSClient({ region: config.get('AWS_REGION') });
+    this.notificationsUrl = config.get('NOTIFICATIONS_API_URL') ?? 'http://localhost:3004';
   }
 
   async create(dto: CreatePostDto, file?: Express.Multer.File) {
@@ -44,20 +43,17 @@ export class PostsService {
     const saved = await this.postsRepository.save(post);
 
     try {
-      await this.sqs.send(
-        new SendMessageCommand({
-          QueueUrl: this.config.get('SQS_QUEUE_URL'),
-          MessageBody: JSON.stringify({
-            type: 'POST_CREATED',
-            postId: saved.id,
-            userId: saved.userId,
-            title: saved.title,
-            content: saved.content,
-          }),
+      await fetch(`${this.notificationsUrl}/notifications`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: saved.userId,
+          type: 'POST_CREATED',
+          message: `New post created: "${saved.title}"`,
         }),
-      );
+      });
     } catch (e) {
-      console.warn('SQS notification failed:', e.message);
+      console.warn('Notification failed:', e.message);
     }
 
     return saved;
