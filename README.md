@@ -1,20 +1,27 @@
-# SOF2AI
+# SOF2AI — Backend & Infrastructure
 
-Reddit-like platform with a microservices architecture deployed on AWS (EC2 → SQS → Lambda → S3).
+Backend microservices and AWS infrastructure for the SOF2AI platform.
+The frontend lives in a separate repo and is deployed on Vercel.
 
 ## Architecture
 
 ```
-Client
-  │
-  ├── users-api     :3001  (NestJS + PostgreSQL)
-  ├── posts-api     :3002  (NestJS + PostgreSQL + S3 + SQS)
-  ├── comments-api  :3003  (NestJS + PostgreSQL + SQS)
-  └── notifications-api :3004  (NestJS + PostgreSQL + SQS polling)
+Frontend (Vercel)
+       │
+       ▼
+  EC2 instance
+       │
+  ┌────┴────────────────────────────────┐
+  │                                     │
+users-api :3001              posts-api :3002
+(NestJS + PostgreSQL)        (NestJS + PostgreSQL + S3 + SQS)
+  │                                     │
+comments-api :3003     notifications-api :3004
+(NestJS + PG + SQS)    (NestJS + PG + SQS polling)
                                          │
                                     SQS Queue
                                          │
-                                   Lambda (validator)
+                               Lambda (validator)
 ```
 
 ## Prerequisites
@@ -154,7 +161,7 @@ The Lambda validator checks all events for banned words: `["spam", "banned", "pr
 ## Project Structure
 
 ```
-sof2ai/
+sof2ai-backend/
 ├── services/
 │   ├── users-api/          # NestJS, port 3001
 │   ├── posts-api/          # NestJS, port 3002
